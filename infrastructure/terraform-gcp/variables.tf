@@ -21,17 +21,17 @@ variable "daily_maintenance_window_start_time" {
 
 
 variable name {
-  type = "string"
+  type = string
   default = "car-demo-cluster"
   description = "Name for the GKE cluster"
 }
 
 variable project {
-  type = "string"
+  type = string
   description = "todo-add-your-gcp-project-name"
 }
 
 variable node_version {
-  type = "string"
+  type = string
   default = "1.13.11-gke.9"
 }
