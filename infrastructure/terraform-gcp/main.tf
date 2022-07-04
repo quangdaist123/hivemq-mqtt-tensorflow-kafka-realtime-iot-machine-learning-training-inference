@@ -89,6 +89,12 @@ resource "null_resource" "setup-cluster" {
 }
 
 resource "null_resource" "setup-messaging" {
+  triggers = {
+    project  = var.project
+    region     = var.region
+    name     = var.name
+  }
+
   depends_on = [
     null_resource.setup-cluster
   ]
@@ -106,7 +112,7 @@ resource "null_resource" "setup-messaging" {
   }
 
   provisioner "local-exec" {
-    command = "./destroy.sh ${var.project} ${var.region} ${var.name}"
+    command = "./destroy.sh ${self.triggers.project} ${self.triggers.region} ${self.triggers.name}"
     when = "destroy"
   }
 }
