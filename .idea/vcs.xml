@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/infrastructure/confluent-kubernetes-examples" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/infrastructure/confluent/confluent-kubernetes-examples" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/infrastructure/hivemq/dai/helm-charts" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/infrastructure/hivemq/helm-charts" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/infrastructure/terraform-gcp/confluent-kubernetes-examples" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/infrastructure/terraform-gcp/confluent-operator/confluent-kubernetes-examples" vcs="Git" />
+  </component>
+</project>

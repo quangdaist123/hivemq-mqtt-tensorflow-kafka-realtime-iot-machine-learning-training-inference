@@ -1,0 +1,41 @@
+apiVersion: krew.googlecontainertools.github.com/v1alpha2
+kind: Plugin
+metadata:
+  name: confluent
+spec:
+  shortDescription: Interact with Confluent Platform
+  description: |
+    The official kubectl plugin for Confluent Platform
+  version: v0.435.11
+  homepage: https://github.com/confluentinc/kubectl-plugin/
+  platforms:
+    - uri: https://github.com/confluentinc/releases/download/kubectl-confluent-darwin-amd64.tar.gz
+      sha256: 7d55c425ddd3cd5a23b65a01b4b8df94106cd11bf08500c19f1c540ff194da3c
+      files:
+        - from: "*"
+          to: "."
+      bin: "./kubectl-confluent"
+      selector:
+        matchLabels:
+          os: darwin
+          arch: amd64
+    - uri: https://github.com/confluentinc/releases/download/kubectl-confluent-linux-amd64.tar.gz
+      sha256: c83a3fc3736bf1ad1cd2d7cef1c4cbd25b6d9f4e56a3db94691080f5c294ab56
+      files:
+        - from: "*"
+          to: "."
+      bin: "./kubectl-confluent"
+      selector:
+        matchLabels:
+          os: linux
+          arch: amd64
+    - uri: https://github.com/confluentinc/releases/download/kubectl-confluent-windows-amd64.tar.gz
+      sha256: a9ec51cfc857bcc5d46acfd5234bad4507a0caf22cf0d64148e4b765e231da3d
+      files:
+        - from: "*"
+          to: "."
+      bin: "./kubectl-confluent.exe"
+      selector:
+        matchLabels:
+          os: windows
+          arch: amd64

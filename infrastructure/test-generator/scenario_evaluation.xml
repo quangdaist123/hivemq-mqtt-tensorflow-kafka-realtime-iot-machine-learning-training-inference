@@ -45,7 +45,7 @@
             <lifeCycle id="publ" clientGroup="cg1">
                 <rampUp duration="20s"/>
                 <publish topicGroup="tg1" payloadGeneratorType="com.hivemq.CarDataPayloadGenerator" qos="1" count="40"
-                         message="" rate="1/5s" roundRobin="false"/>
+                         message="" rate="1/1s" roundRobin="false"/>
                 <disconnect/>
             </lifeCycle>
         </stage>

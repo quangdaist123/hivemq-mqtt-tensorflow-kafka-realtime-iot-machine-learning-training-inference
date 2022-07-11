@@ -100,7 +100,7 @@ The script '01_installConfluentPlatform.sh' uses Helm to set up the Kafka Connec
 helm upgrade --install \
 connect \
 ./confluent-operator -f \
-${MYDIR}/gcp.yaml \
+${MYDIR}/gcp_old.yaml \
 --namespace operator \
 --set connect.enabled=true
 

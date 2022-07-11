@@ -1,8 +1,12 @@
 provider "google" {
   credentials = file("account.json")
   project = var.project
-  region = var.region
-  version = "3.5.0"
+  region = var.zone
+}
+
+resource "google_service_account" "storage-account" {
+  account_id = "car-demo-storage-account"
+  display_name = "car-demo-storage-account-${var.name}"
 }
 
 resource "google_container_cluster" "cluster" {
@@ -11,19 +15,18 @@ resource "google_container_cluster" "cluster" {
   }
 
   name = var.name
-  location = var.region
+  location = var.zone
 
   remove_default_node_pool = true
   initial_node_count = 1
 
-  master_auth {
-    username = ""
-    password = ""
-
-    client_certificate_config {
-      issue_client_certificate = false
-    }
-  }
+#  master_auth {
+#    username = ""
+#    password = ""
+#    client_certificate_config {
+#      issue_client_certificate = false
+#    }
+#  }
 
   /* Calico might be an option for improved ingress performance if we connect MQTT clients from the edge, currently not the case
 
@@ -35,13 +38,13 @@ resource "google_container_cluster" "cluster" {
   addons_config {
     network_policy_config {
       disabled = false
-    }
+    }SS
   }*/
 }
 
 resource "google_container_node_pool" "primary_nodes" {
   name = "car-demo-node-pool-${var.name}"
-  location = var.region
+  location = var.zone
 
   cluster = google_container_cluster.cluster.name
   node_count = var.node_count
@@ -49,7 +52,10 @@ resource "google_container_node_pool" "primary_nodes" {
   node_config {
     // We use preemptible nodes because they're cheap (for testing purposes). Set this to false if you want consistent performance.
     preemptible = var.preemptible_nodes
-    machine_type = "n1-standard-8"
+#    machine_type = "n1-standard-8"
+#    machine_type = "n2d-highcpu-2"
+    machine_type = "e2-highmem-2" # 2 CPUs 16GB
+#    machine_type = "e2-highmem-4" # 4 CPUs 16GB
 
     metadata = {
       disable-legacy-endpoints = "true"
@@ -58,18 +64,20 @@ resource "google_container_node_pool" "primary_nodes" {
     oauth_scopes = [
       "https://www.googleapis.com/auth/logging.write",
       "https://www.googleapis.com/auth/monitoring",
+      "https://www.googleapis.com/auth/cloud-platform"
     ]
   }
 
-  autoscaling {
-    max_node_count = var.node_count
-    min_node_count = 1
-  }
+#  autoscaling {
+#    max_node_count = var.node_count
+#    min_node_count = 1
+#  }
 
-  management {
-    auto_upgrade = false
-  }
+#  management {
+#    auto_upgrade = false
+#  }
 }
+
 
 resource "null_resource" "setup-cluster" {
   depends_on = [
@@ -77,21 +85,22 @@ resource "null_resource" "setup-cluster" {
   ]
   triggers = {
     id = google_container_cluster.cluster.id
-    reg = var.region
+    reg = var.zone
     prj = var.project
     // Re-run script on deployment script changes
     script = sha1(file("00_setup_GKE.sh"))
   }
 
   provisioner "local-exec" {
-    command = "./00_setup_GKE.sh ${google_container_cluster.cluster.name} ${var.region} ${var.project}"
+    command = "./00_setup_GKE.sh ${google_container_cluster.cluster.name} ${var.zone} ${var.project}"
   }
 }
 
 resource "null_resource" "setup-messaging" {
   triggers = {
+    zone     = var.zone
     project  = var.project
-    region     = var.region
+    region   = var.region
     name     = var.name
   }
 
@@ -112,17 +121,15 @@ resource "null_resource" "setup-messaging" {
   }
 
   provisioner "local-exec" {
-    command = "./destroy.sh ${self.triggers.project} ${self.triggers.region} ${self.triggers.name}"
+    command = "./destroy.sh ${self.triggers.project} ${self.triggers.zone} ${self.triggers.name}"
+#    command = "./destroy.sh ${self.triggers.project} europe-west1-b ${self.triggers.name}"
     when = "destroy"
   }
 }
 
 # Object storage for model updates
 
-resource "google_service_account" "storage-account" {
-  account_id = "car-demo-storage-account"
-  display_name = "car-demo-storage-account-${var.name}"
-}
+
 
 resource "google_storage_bucket" "model-bucket" {
   name = "tf-models_${var.project}_${var.name}"

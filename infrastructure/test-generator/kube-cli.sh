@@ -113,7 +113,7 @@ fi
 ### Defaults
 IMAGE=hivemq/device-simulator
 NAMESPACE=default
-AGENT_COUNT=3
+AGENT_COUNT=1
 LOG_LEVEL=INFO
 
 MEMORY=1G

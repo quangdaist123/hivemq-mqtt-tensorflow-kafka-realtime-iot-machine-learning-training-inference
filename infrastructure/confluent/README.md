@@ -22,7 +22,7 @@ gcloud container clusters list
 ```
 
 2. During the script execution the Confluent Operator (Version v0.65.1) will be downloaded ([The logic is in 01_installConfluentPlatform.sh](01_installConfluentPlatform.sh)). If there is newer Confluent Operator version please update the link in 01_installConfluentPlatform.sh.
-We use Google Cloud Confluent Operator template [gcp.yaml](gcp.yaml) for installing the Confluent Platform into GKE created K8s cluster. The template is copied into the new downloaded Confluent Operator Helm-Chart-Producer directory(see confluent-operator/helm/provider on your local disk). Please change this file [gcp.yaml](gcp.yaml) for your setup. We use Cloud Region=europe-west1 and Zones=europe-west1-b, europe-west1-c, europe-west1-d. The replicas for Kafka Broker and Zookeeper are set to 3, Connect to 2, all other replicas to 1.
+We use Google Cloud Confluent Operator template [gcp.yaml](gcp_old.yaml) for installing the Confluent Platform into GKE created K8s cluster. The template is copied into the new downloaded Confluent Operator Helm-Chart-Producer directory(see confluent-operator/helm/provider on your local disk). Please change this file [gcp.yaml](gcp_old.yaml) for your setup. We use Cloud Region=europe-west1 and Zones=europe-west1-b, europe-west1-c, europe-west1-d. The replicas for Kafka Broker and Zookeeper are set to 3, Connect to 2, all other replicas to 1.
 The following setup will be provisioned:
 ![GKE cluster deployed pods](images/gke_cluster.png)
 If the GKE cluster is up and running execute the script [01_installConfluentPlatform.sh](01_installConfluentPlatform.sh) manually.
@@ -128,31 +128,31 @@ For this we can use the Confluent Operator and tell Kubernetes to add a LoadBala
 ```bash
 cd infrastructure/terraform-gcp/confluent-operator/helm/
 echo "Create LB for Kafka"
-helm upgrade -f ./providers/gcp.yaml \
+helm upgrade -f ./providers/gcp_old.yaml \
  --set kafka.enabled=true \
  --set kafka.loadBalancer.enabled=true \
  --set kafka.loadBalancer.domain=mydevplatform.gcp.cloud kafka \
  ./confluent-operator
 echo "Create LB for Connect"
-helm upgrade -f ./providers/gcp.yaml \
+helm upgrade -f ./providers/gcp_old.yaml \
  --set connect.enabled=true \
  --set connect.loadBalancer.enabled=true \
  --set connect.loadBalancer.domain=mydevplatform.gcp.cloud connect \
  ./confluent-operator
 echo "Create LB for KSQL"
-helm upgrade -f ./providers/gcp.yaml \
+helm upgrade -f ./providers/gcp_old.yaml \
  --set ksql.enabled=true \
  --set ksql.loadBalancer.enabled=true \
  --set ksql.loadBalancer.domain=mydevplatform.gcp.cloud ksql \
  ./confluent-operator
 echo "Create LB for SchemaRegistry"
-helm upgrade -f ./providers/gcp.yaml \
+helm upgrade -f ./providers/gcp_old.yaml \
  --set schemaregistry.enabled=true \
  --set schemaregistry.loadBalancer.enabled=true \
  --set schemaregistry.loadBalancer.domain=mydevplatform.gcp.cloud schemaregistry \
  ./confluent-operator
 echo "Create LB for Control Center"
-helm upgrade -f ./providers/gcp.yaml \
+helm upgrade -f ./providers/gcp_old.yaml \
  --set controlcenter.enabled=true \
  --set controlcenter.loadBalancer.enabled=true \
  --set controlcenter.loadBalancer.domain=mydevplatform.gcp.cloud controlcenter \
