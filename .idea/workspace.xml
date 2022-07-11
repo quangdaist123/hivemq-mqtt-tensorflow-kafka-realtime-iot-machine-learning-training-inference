@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="820645fb-63b8-4ddb-b0db-b808a82198a4" name="Changes" comment="temp">
-      <change afterPath="$PROJECT_DIR$/infrastructure/confluent/gcp_old.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/infrastructure/confluent/gcp.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/infrastructure/confluent/gcp.yaml" afterDir="false" />
-    </list>
+    <list default="true" id="820645fb-63b8-4ddb-b0db-b808a82198a4" name="Changes" comment="temp" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -60,7 +57,14 @@
       <option name="project" value="LOCAL" />
       <updated>1657502924641</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="temp">
+      <created>1657503154754</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1657503154754</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
