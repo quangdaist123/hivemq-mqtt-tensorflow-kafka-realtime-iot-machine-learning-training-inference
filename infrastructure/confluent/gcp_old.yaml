@@ -12,6 +12,14 @@ global:
           - europe-west1-b
 #          - europe-west1-c
 #          - europe-west1-d
+    storage:
+      ## https://kubernetes.io/docs/concepts/storage/storage-classes/#gce
+      ##
+      provisioner: kubernetes.io/gce-pd
+      ## Use Retain if you want to persist data after CP cluster has been uninstalled
+      reclaimPolicy: Delete
+      parameters:
+        type: pd-ssd
     ## Docker registry endpoint where Confluent Images are available.
     ##
     registry:
@@ -22,16 +30,6 @@ global:
     plain:
       username: test
       password: test123
-  authorization:
-    rbac:
-      enabled: false
-    simple:
-      enabled: false
-    superUsers: []
-  dependencies:
-    mds:
-      endpoint: ""
-      publicKey: ""
 
 ## Zookeeper cluster
 ##
@@ -52,64 +50,25 @@ kafka:
     requests:
       cpu: 200m
       memory: 1Gi
+  volume:
+    data0: 100Gi
   loadBalancer:
-    enabled: false
-    domain: ""
+    enabled: true
+    domain: "mydevplatform.gcp.cloud"
   tls:
     enabled: false
     fullchain: |-
     privkey: |-
     cacerts: |-
   metricReporter:
-    enabled: false
+    enabled: true
 
-## Connect Cluster
-##
-connect:
-  name: connectors
-  replicas: 2
-  tls:
-    enabled: false
-    ## "" for none, "tls" for mutual auth
-    authentication:
-      type: ""
-    fullchain: |-
-    privkey: |-
-    cacerts: |-
-  loadBalancer:
-    enabled: false
-    domain: ""
-  dependencies:
-    kafka:
-      bootstrapEndpoint: kafka:9071
-      brokerCount: 3
-    schemaRegistry:
-      enabled: true
-      url: http://schemaregistry:8081
-## Replicator Connect Cluster
-##
-replicator:
-  name: replicator
-  replicas: 2
-  tls:
-    enabled: false
-    authentication:
-      type: ""
-    fullchain: |-
-    privkey: |-
-    cacerts: |-
-  loadBalancer:
-    enabled: false
-    domain: ""
-  dependencies:
-    kafka:
-      brokerCount: 3
-      bootstrapEndpoint: kafka:9071
 ##
 ## Schema Registry
 ##
 schemaregistry:
   name: schemaregistry
+  replicas: 1
   tls:
     enabled: false
     authentication:
@@ -118,8 +77,8 @@ schemaregistry:
     privkey: |-
     cacerts: |-
   loadBalancer:
-    enabled: false
-    domain: ""
+    enabled: true
+    domain: "mydevplatform.gcp.cloud"
   dependencies:
     kafka:
       brokerCount: 3
@@ -130,7 +89,7 @@ schemaregistry:
 ##
 ksql:
   name: ksql
-  replicas: 2
+  replicas: 1
   tls:
     enabled: false
     authentication:
@@ -139,15 +98,15 @@ ksql:
     privkey: |-
     cacerts: |-
   loadBalancer:
-    enabled: false
-    domain: ""
+    enabled: true
+    domain: "mydevplatform.gcp.cloud"
   dependencies:
     kafka:
       brokerCount: 3
       bootstrapEndpoint: kafka:9071
       brokerEndpoints: kafka-0.kafka:9071,kafka-1.kafka:9071,kafka-2.kafka:9071
     schemaRegistry:
-      enabled: false
+      enabled: true
       tls:
         enabled: false
         authentication:
@@ -159,6 +118,8 @@ ksql:
 controlcenter:
   name: controlcenter
   license: ""
+  volume:
+    data0: 100Gi
   ##
   ## C3 dependencies
   ##
@@ -169,11 +130,11 @@ controlcenter:
       zookeeper:
         endpoint: zookeeper:2181
     connectCluster:
-      enabled: true
-      url: http://connectors:8083
+      enabled: false
+      url: http://connect:8083
     ksql:
       enabled: true
-      url: http://ksql:9088
+      url: http://ksql:8088
     schemaRegistry:
       enabled: true
       url: http://schemaregistry:8081
@@ -181,8 +142,8 @@ controlcenter:
   ## C3 External Access
   ##
   loadBalancer:
-    enabled: false
-    domain: ""
+    enabled: true
+    domain: "mydevplatform.gcp.cloud"
   ##
   ## TLS configuration
   ##
@@ -204,3 +165,26 @@ controlcenter:
       property:
         admin: Developer1,Administrators
         disallowed: no_access
+## Connect Cluster
+ ##
+connect:
+  name: connect
+  replicas: 2
+  tls:
+    enabled: false
+    ## "" for none, "tls" for mutual auth
+    authentication:
+      type: ""
+    fullchain: |-
+    privkey: |-
+    cacerts: |-
+  loadBalancer:
+    enabled: true
+    domain: "mydevplatform.gcp.cloud"
+  dependencies:
+    kafka:
+      bootstrapEndpoint: kafka:9071
+      brokerCount: 3
+    schemaRegistry:
+      enabled: true
+      url: http://schemaregistry:8081
