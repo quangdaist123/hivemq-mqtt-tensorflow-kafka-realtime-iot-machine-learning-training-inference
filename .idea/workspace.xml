@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="820645fb-63b8-4ddb-b0db-b808a82198a4" name="Changes" comment="temp" />
+    <list default="true" id="820645fb-63b8-4ddb-b0db-b808a82198a4" name="Changes" comment="temp">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/test-generator/scenario_evaluation.xml" beforeDir="false" afterPath="$PROJECT_DIR$/infrastructure/test-generator/scenario_evaluation.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python-scripts/AUTOENCODER-TensorFlow-IO-Kafka/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/python-scripts/AUTOENCODER-TensorFlow-IO-Kafka/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python-scripts/AUTOENCODER-TensorFlow-IO-Kafka/cardata-v3.py" beforeDir="false" afterPath="$PROJECT_DIR$/python-scripts/AUTOENCODER-TensorFlow-IO-Kafka/cardata-v3.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python-scripts/AUTOENCODER-TensorFlow-IO-Kafka/model-predictions.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/python-scripts/AUTOENCODER-TensorFlow-IO-Kafka/model-predictions.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python-scripts/AUTOENCODER-TensorFlow-IO-Kafka/model-training.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/python-scripts/AUTOENCODER-TensorFlow-IO-Kafka/model-training.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/testdata/Test-Load-csv/file_stream_demo_standalone.properties" beforeDir="false" afterPath="$PROJECT_DIR$/testdata/Test-Load-csv/file_stream_demo_standalone.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/testdata/Test-Load-csv/test_file_source_and _testdata.sh" beforeDir="false" afterPath="$PROJECT_DIR$/testdata/Test-Load-csv/test_file_source_and_testdata.sh" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -22,22 +31,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "TF_FMT": "false",
-    "last_opened_file_path": "/home/lov/hivemq-mqtt-tensorflow-kafka-realtime-iot-machine-learning-training-inference/infrastructure/confluent",
-    "settings.editor.selected.configurable": "com.maddyhome.idea.vim.ui.VimEmulationConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;TF_FMT&quot;: &quot;false&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/lov/hivemq-mqtt-tensorflow-kafka-realtime-iot-machine-learning-training-inference/python-scripts/AUTOENCODER-TensorFlow-IO-Kafka&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.maddyhome.idea.vim.ui.VimEmulationConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/python-scripts/AUTOENCODER-TensorFlow-IO-Kafka" />
       <recent name="$PROJECT_DIR$/infrastructure/confluent" />
       <recent name="$PROJECT_DIR$/infrastructure/terraform-gcp" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/python-scripts/AUTOENCODER-TensorFlow-IO-Kafka/credentials" />
       <recent name="$PROJECT_DIR$/infrastructure/confluent" />
     </key>
   </component>
@@ -66,6 +77,9 @@
     </task>
     <option name="localTasksCounter" value="3" />
     <servers />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="Dockerfile" />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">

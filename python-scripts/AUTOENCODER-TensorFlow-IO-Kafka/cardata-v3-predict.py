@@ -4,6 +4,7 @@ import tensorflow_io as tfio
 import tensorflow_io.kafka as kafka_io
 import tensorflow_datasets as tfds
 from google.cloud import storage
+from kafka import KafkaProducer
 import io
 from confluent_kafka import Consumer, KafkaError
 from avro.io import DatumReader, BinaryDecoder
@@ -15,7 +16,8 @@ kafka_config = [
     # "sasl.password=test123",
     # "sasl.mechanisms=PLAIN"
     # Tried to force kafka library to use the correct address
-    "bootstrap.servers=kafka.confluent.svc.cluster.local:9071"
+    "bootstrap.servers=kafka.confluent.svc.cluster.local:9071",
+    # "enable.partition.eof=false"
 ]
 
 with open('cardata-v1.avsc') as f:
@@ -59,12 +61,30 @@ list_files('.')
 client = storage.Client.from_service_account_json('./credentials/credentials.json')
 bucket = client.get_bucket("tf-models_" + bucket_suffix)
 
+# deserialize avro
+import avro.schema
+
+
+def decode_avro(message):
+    schema = avro.schema.parse(open("cardata-v1.avsc").read())
+    reader = DatumReader(schema)
+    # you should decode bytes type to string type
+    message = message.numpy()
+    # remove kafka framing
+    message_bytes = io.BytesIO(message[5:])
+    decoder = BinaryDecoder(message_bytes)
+    event_dict = reader.read(decoder)
+    # output = event_dict.values()
+    output = [event_dict[k] for k in event_dict.keys()]
+    # output = normalize_fn(*event_dict.values())
+    return output
+
 
 def kafka_dataset(servers, topic, offset, schema, eof=True):
     # dataset = kafka_io.KafkaDataset(["{}:0:{}".format(topic, offset, offset)], servers=servers,
     #                                 group="cardata-autoencoder", eof=eof, config_global=kafka_config)
 
-    dataset = tfio.IODataset.from_kafka(topic, partition=0, offset=0, servers=servers, configuration=kafka_config)
+    # dataset = tfio.IODataset.from_kafka(topic, partition=0, offset=0, servers=servers, configuration=kafka_config)
     # dataset = tfio.experimental.streaming.KafkaGroupIODataset(
     #     topics=topic,
     #     group_id="cardata-autoencoder",
@@ -72,27 +92,21 @@ def kafka_dataset(servers, topic, offset, schema, eof=True):
     #     stream_timeout=10000,
     #     configuration=kafka_config,
     # )
+    dataset = tfio.experimental.streaming.KafkaGroupIODataset(
+        topics=[topic],
+        group_id="cg-report-8",
+        servers=servers,
+        stream_timeout=30000,  # in milliseconds, to block indefinitely, set it to -1.
+        configuration=[
+            "session.timeout.ms=30000",
+            "max.poll.interval.ms=30000",
+            "auto.offset.reset=earliest",
+            # "auto.offset.reset=latest",
+            "enable.partition.eof=false"
+        ],
+    )
 
-    hi = list(dataset.as_numpy_iterator())
-
-    # deserialize avro
-    import avro.schema
-    schema = avro.schema.parse(open("cardata-v1.avsc").read())
-    reader = DatumReader(schema)
-
-    def decode_avro(message):
-        # you should decode bytes type to string type
-        message = message.numpy()
-        # remove kafka framing
-        message_bytes = io.BytesIO(message[5:])
-        decoder = BinaryDecoder(message_bytes)
-        event_dict = reader.read(decoder)
-        # output = event_dict.values()
-        output = [event_dict[k] for k in event_dict.keys()]
-        # output = normalize_fn(*event_dict.values())
-        return output
-
-    dataset = dataset.map(lambda x: tf.py_function(decode_avro, [x.message], [
+    dataset = dataset.map(lambda message, key: tf.py_function(decode_avro, [message], [
         tf.float64,
         tf.float64,
         tf.float64,
@@ -112,28 +126,6 @@ def kafka_dataset(servers, topic, offset, schema, eof=True):
         tf.float64,
         tf.int32,
         tf.string]))
-    # dataset = dataset.map(
-    #     lambda e: kafka_io.decode_avro(
-    #         e, schema=schema, dtype=[
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.int32,
-    #             tf.int32,
-    #             tf.int32,
-    #             tf.int32,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.int32,
-    #             tf.string]))
     return dataset
 
 
@@ -230,13 +222,17 @@ def normalize_fn(
         control_unit_firmware]), failure_occurred
 
 
+def _fixup_shape(x):
+    x.set_shape([18])
+    return x
+
+
 # Note: same autoencoder, except:
 # Autoencoder: 30 => 14 => 7 => 7 => 14 => 30 dimensions
 # replaced by
 # Autoencoder: 18 => 14 => 7 => 7 => 14 => 18 dimensions
 
-nb_epoch = 20
-batch_size = 100
+batch_size = 1
 
 # Autoencoder: 18 => 14 => 7 => 7 => 14 => 18 dimensions
 input_dim = 18  # num of columns, 18
@@ -275,12 +271,6 @@ if mode == "train":
     # autoencoder is x => x so no y
     dataset = dataset.map(lambda x, y: x)
 
-
-    def _fixup_shape(x):
-        x.set_shape([18])
-        return x
-
-
     dataset = dataset.map(_fixup_shape)
 
     # Autoencoder => Input == Output
@@ -301,27 +291,19 @@ class OutputCallback(tf.keras.callbacks.Callback):
     """KafkaOutputCallback"""
 
     def __init__(self, batch_size, topic, servers):
-        self._sequence = kafka_io.KafkaOutputSequence(
-            topic=topic, servers=servers, configuration=kafka_config)
+        self.topic = topic
+        # self._sequence = kafka_io.KafkaOutputSequence(
+        #     topic=topic, servers=servers, configuration=kafka_config)
+        self._sequence = KafkaProducer(bootstrap_servers=servers)
         self._batch_size = batch_size
 
     def on_predict_batch_end(self, batch, logs=None):
         index = batch * self._batch_size
         for outputs in logs['outputs']:
-            print(outputs)
             message = np.array2string(outputs)
-            self._sequence.setitem(index, message)
-            index += 1
+            self._sequence.send(self.topic, value=message.encode('utf-8'))
+            # self._sequence.setitem(index, message)
 
-    # def on_predict_batch_end(self, batch, logs=None):
-    #     index = batch * self._batch_size
-    #     for outputs in logs['outputs']:
-    #         print(outputs)
-    #         for output in outputs:
-    #             print(message)
-    #             message = np.array2string(output)
-    #             self._sequence.setitem(index, message)
-    #             index += 1
     def flush(self):
         self._sequence.flush()
 
@@ -333,39 +315,77 @@ if mode == "predict":
     print("Loading model")
     # Recreate the exact same model purely from the file
     new_autoencoder = tf.keras.models.load_model("/" + model_file)
+    output = OutputCallback(batch_size, result_topic, servers)
 
-    # Create predict dataset (with 200 data points)
-    # Note: we don't need to  use `filter(lambda x, y: y == "false")` anymore
-    # as we will do predict for everything
-
-    # drop y field (could be `true`, `false`, or no value ``)
+    # dataset = dataset.batch(batch_size)
     dataset = dataset.filter(lambda x, y: y == "false")
     # autoencoder is x => x so no y
     dataset = dataset.map(lambda x, y: x)
-
-
-    def _fixup_shape(x):
-        x.set_shape([18])
-        return x
-
-
     dataset = dataset.map(_fixup_shape)
-
-    # Autoencoder => Input == Output
-    # dataset_training = tf.data.Dataset.zip((dataset, dataset)).batch(batch_size)
-    # data_offset = 100
-
-    # Use same batch_size, but result_topic
-    output = OutputCallback(batch_size, result_topic, servers)
-
-    # dataset_predict = dataset.batch(batch_size).skip(data_offset)
-    dataset_predict = dataset.batch(batch_size)
-
-    tf.config.run_functions_eagerly(True)
-    predict_out = new_autoencoder.predict(dataset_predict, callbacks=[output])
-
-    print("predict %s, dataset: %s", predict_out, dataset_predict)
+    dataset = dataset.batch(batch_size)
+    predict_out = new_autoencoder.predict(dataset, callbacks=[output])
     output.flush()
+
+    # # ---------- new
+    #     # mini_ds = mini_ds.shuffle(buffer_size=batch_size)
+    #     mini_ds = mini_ds.batch(batch_size)
+    #     if len(mini_ds) > 0:
+    #         mini_ds = mini_ds.map(lambda message, key: tf.py_function(decode_avro, [message], [
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.int32,
+    #             tf.int32,
+    #             tf.int32,
+    #             tf.int32,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.int32,
+    #             tf.string]))
+    #         mini_ds = mini_ds.map(normalize_fn)
+    #         # dataset = dataset.map(
+    #         #     lambda e: kafka_io.decode_avro(
+    #         #         e, schema=schema, dtype=[
+    #         #             tf.float64,
+    #         #             tf.float64,
+    #         #             tf.float64,
+    #         #             tf.float64,
+    #         #             tf.float64,
+    #         #             tf.float64,
+    #         #             tf.float64,
+    #         #             tf.float64,
+    #         #             tf.float64,
+    #         #             tf.int32,
+    #         #             tf.int32,
+    #         #             tf.int32,
+    #         #             tf.int32,
+    #         #             tf.float64,
+    #         #             tf.float64,
+    #         #             tf.float64,
+    #         #             tf.float64,
+    #         #             tf.int32,
+    #         #             tf.string]))
+    #         mini_ds = mini_ds.filter(lambda x, y: y == "false")
+    #         # autoencoder is x => x so no y
+    #         mini_ds = mini_ds.map(lambda x, y: x)
+    #         mini_ds = mini_ds.map(_fixup_shape)
+    #         # Autoencoder => Input == Output
+    #         # dataset_training = tf.data.Dataset.zip((dataset, dataset)).batch(batch_size)
+    #         # data_offset = 100
+    #         # Use same batch_size, but result_topic
+    #         # new_autoencoder.fit(mini_ds, epochs=3)
+    #         predict_out = new_autoencoder.predict(mini_ds, callbacks=[output])
+    #         output.flush()
+
+    # print("predict %s, dataset: %s", predict_out, dataset_predict)
     print("Predict complete")
     # while True:
     #    dataset_predict = dataset_predict.batch(batch_size).skip(data_offset).take(100)

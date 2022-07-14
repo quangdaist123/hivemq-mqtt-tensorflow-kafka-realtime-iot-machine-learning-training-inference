@@ -9,11 +9,14 @@
 # Kafka Connect deep dive: https://www.confluent.io/blog/kafka-connect-deep-dive-converters-serialization-explained
 # 
 
-confluent local start
-confluent local list connectors
+#confluent local start
+#confluent local list connectors
 
-kafka-topics --create --topic car-data-csv --partitions 1 --replication-factor 1 --zookeeper 127.0.0.1:2181
-kafka-topics --create --topic cardata --partitions 1 --replication-factor 1 --zookeeper 127.0.0.1:2181
+#kafka-topics --create --topic car-data-csv --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092
+#kafka-topics --create --topic cardata --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092
+
+kafka-topics --create --topic car-data-csv --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092
+kafka-topics --create --topic cardata --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092
 # kafka-topics --zookeeper localhost:2181 --delete --topic users
 # kafka-topics --zookeeper localhost:2181 --list
 
@@ -26,7 +29,7 @@ curl http://localhost:8081/subjects/
 #"fields": [
 #    {
 #      "name": "coolant_temp", "type": "float"},
-python3 register_schema.py http://localhost:8081 cardata /Users/cmutzlitz/Confluent/hiveMQ/cardata-v1.avsc
+python3 register_schema.py http://localhost:8081 cardata /home/lov/hivemq-mqtt-tensorflow-kafka-realtime-iot-machine-learning-training-inference/testdata/cardata-v1.avsc
 
 # check
 curl http://localhost:8081/subjects/cardata-value/versions/
