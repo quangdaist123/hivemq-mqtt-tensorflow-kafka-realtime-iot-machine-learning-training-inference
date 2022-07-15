@@ -20,76 +20,27 @@ helm install --replace --atomic kube-prometheus-stack prometheus-community/kube-
 echo "Deploying K8s dashboard..."
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-rc2/aio/deploy/recommended.yaml
 
-echo "Download Confluent Operator"
+
+kubectl create namespace confluent || true
+echo "Download Confluent For Kubernetes (CFK)"
 # check if Confluent Operator still exist
 DIR="confluent-operator/"
 if [[ -d "$DIR" ]]; then
   # Take action if $DIR exists. #
-  echo "Operator is installed..."
-  cd confluent-operator/
+  echo "CFK installed..."
+  cd confluent-operator/confluent-for-kubernetes-2.3.0-20220405
+
 else
   mkdir confluent-operator
-  cd confluent-operator/
-  # CP 5.3
-  #wget https://platform-ops-bin.s3-us-west-1.amazonaws.com/operator/confluent-operator-20190912-v0.65.1.tar.gz
-  #tar -xvf confluent-operator-20190912-v0.65.1.tar.gz
-  #rm confluent-operator-20190912-v0.65.1.tar.gz
-  # CP 5.4
-  #wget https://platform-ops-bin.s3-us-west-1.amazonaws.com/operator/confluent-operator-20200115-v0.142.1.tar.gz
-  #tar -xvf confluent-operator-20200115-v0.142.1.tar.gz
-  #rm confluent-operator-20200115-v0.142.1.tar.gz
-  # CP 6.0
-  wget https://platform-ops-bin.s3-us-west-1.amazonaws.com/operator/confluent-operator-1.6.0-for-confluent-platform-6.0.0.tar.gz
-  tar -xvf confluent-operator-1.6.0-for-confluent-platform-6.0.0.tar.gz
-  rm confluent-operator-1.6.0-for-confluent-platform-6.0.0.tar.gz
-
-  cp ${MYDIR}/gcp.yaml helm/providers/
+  cd confluent-operator
+  curl -O https://confluent-for-kubernetes.s3-us-west-1.amazonaws.com/confluent-for-kubernetes-2.3.0.tar.gz
+  tar -xvzf confluent-for-kubernetes-2.3.0.tar.gz
+  cd confluent-for-kubernetes-2.3.0-20220405
 fi
 
-cd helm/
-
-# Install CP 5.4 cluster
-#../scripts/operator-util.sh -n operator -r co1 -f providers/gcp.yaml
-#../scripts/operator-util.sh -n operator -f providers/gcp.yaml
-
-# kubectl rollout status sts -n operator controlcenter
-#kubectl get pods -n operator
-
-# or one by one
-#prepare Confluent Operator installation
-kubectl create namespace operator || true
-# Operator
-helm upgrade --install \
-operator \
-./confluent-operator -f \
-${MYDIR}/gcp.yaml \
---namespace operator \
---set operator.enabled=true
-echo "After Operator Installation: Check all pods..."
-kubectl get pods -n operator
-kubectl rollout status deployment -n operator cc-operator
-kubectl get crd | grep confluent
-
-# Zookeeper
-helm upgrade --install \
-zookeeper \
-./confluent-operator -f \
-${MYDIR}/gcp.yaml \
---namespace operator \
---set zookeeper.enabled=true
-
-echo "After Zookeeper Installation: Check all pods..."
-kubectl get pods -n operator
-sleep 10
-kubectl rollout status sts -n operator zookeeper
-
-# kafka
-helm upgrade --install \
-kafka \
-./confluent-operator -f \
-${MYDIR}/gcp.yaml \
---namespace operator \
---set kafka.enabled=true
+# Install confluent operator (new version)
+cd helm
+helm upgrade --install confluent-operator ./confluent-for-kubernetes  --namespace confluent
 
 echo "After Kafka Broker Installation: Check all pods..."
 kubectl get pods -n operator

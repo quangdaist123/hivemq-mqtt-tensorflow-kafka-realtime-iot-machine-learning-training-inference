@@ -19,15 +19,24 @@ kubectl create -n monitoring configmap hivemq-dashboard --from-file=hivemq.json 
 kubectl label -n monitoring configmap/hivemq-dashboard grafana_dashboard=1 || true
 
 echo "Deploying HiveMQ operator..."
-# Warning: This is a really early development version of the operator. DO NOT USE IN PRODUCTION
-kubectl run operator --namespace hivemq --serviceaccount=hivemq-operator --image=sbaier1/hivemq-operator:0.0.5 || true
-kubectl rollout -n hivemq status deployment operator
-# Arbitrary sleep to wait until the operator creates the CRD
-sleep 5
 
 kubectl apply -f kafka-config.yaml
 
+
+# Install operator????
+helm repo add hivemq https://hivemq.github.io/helm-charts
+helm repo update
+helm upgrade --install hivemq hivemq/hivemq-operator
+ sleep 5
+
+# TODO: wait until operator has been deployed
+# Delete the default hivemq cluster
+kubectl delete deploy hivemq
+
+#kubectl apply -n hivemq -f hivemq-crd-evaluation.yaml
 kubectl apply -f hivemq-crd-evaluation.yaml
+
+
 until kubectl get -n hivemq deployments | grep hivemq-cluster1; do
     echo "Deployment not available yet"
     sleep 5
