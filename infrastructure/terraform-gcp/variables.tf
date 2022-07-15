@@ -31,8 +31,8 @@ variable project {
   description = "todo-add-your-gcp-project-name"
   default = "bigdata-demo-1954"
 }
-
-variable node_version {
-  type = string
-  default = "1.13.11-gke.9"
-}
+#
+#variable node_version {
+#  type = string
+#  default = "1.13.11-gke.9"
+#}
