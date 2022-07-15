@@ -16,14 +16,14 @@ resource "google_container_cluster" "cluster" {
   remove_default_node_pool = true
   initial_node_count = 1
 
-  master_auth {
-    username = ""
-    password = ""
-
-    client_certificate_config {
-      issue_client_certificate = false
-    }
-  }
+#  master_auth {
+#    username = ""
+#    password = ""
+#
+#    client_certificate_config {
+#      issue_client_certificate = false
+#    }
+#  }
 
   /* Calico might be an option for improved ingress performance if we connect MQTT clients from the edge, currently not the case
 
