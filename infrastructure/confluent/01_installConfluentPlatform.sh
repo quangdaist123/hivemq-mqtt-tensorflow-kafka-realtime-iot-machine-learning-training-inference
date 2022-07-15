@@ -42,63 +42,37 @@ fi
 cd helm
 helm upgrade --install confluent-operator ./confluent-for-kubernetes  --namespace confluent
 
-echo "After Kafka Broker Installation: Check all pods..."
-kubectl get pods -n operator
-sleep 10
-kubectl rollout status sts -n operator kafka
+# Install krew
+(   set -x; cd "$(mktemp -d)" &&   OS="$(uname | tr '[:upper:]' '[:lower:]')" &&   ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')" &&   KREW="krew-${OS}_${ARCH}" &&   curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" &&   tar zxvf "${KREW}.tar.gz" &&   ./"${KREW}" install krew; )
+export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+
+# Install confluent platform plugin
+cd ../kubectl-plugin/
+kubectl krew install   --manifest=confluent-platform.yaml   --archive=kubectl-confluent-linux-amd64.tar.gz
 
 
-# Schema Registry
-helm upgrade --install \
-schemaregistry \
-./confluent-operator -f \
-${MYDIR}/gcp.yaml \
---namespace operator \
---set schemaregistry.enabled=true
+# Install confluent platform
+cd ..
+cd ..
 
-echo "After Schema Registry Installation: Check all pods..."
-kubectl get pods -n operator
-sleep 10
-kubectl rollout status sts -n operator schemaregistry
+DIR="confluent-kubernetes-examples/"
+if [[ -d "$DIR" ]]; then
+  cd confluent-kubernetes-examples
+  # Take action if $DIR exists. #
+#  echo "Operator is installed..."
+else
+  git clone https://github.com/confluentinc/confluent-kubernetes-examples.git
+  cd confluent-kubernetes-examples
+fi
 
-# Kafka Connect
-helm upgrade --install \
-connect \
-./confluent-operator -f \
-${MYDIR}/gcp.yaml \
---namespace operator \
---set connect.enabled=true
+#find ./ -type f -exec sed -i 's/namespace: operator/namespace: operator/g' {} \ ;
+#find ./ \( -type d -name .git -prune \) -o -type f -print0 | xargs -0 sed -i  's/namespace: operator/namespace: operator/g'
+cd quickstart-deploy
+kubectl apply -f ./confluent-platform.yaml -n confluent
+echo "Successfully deployed Confluent Platform"
 
-echo "After Kafka Connect Installation: Check all pods..."
-kubectl get pods -n operator
-sleep 10
-kubectl rollout status sts -n operator connect
-
-# ksql
-helm upgrade --install \
-ksql \
-./confluent-operator -f \
-${MYDIR}/gcp.yaml \
---namespace operator \
---set ksql.enabled=true
-
-echo "After KSQL Installation: Check all pods..."
-kubectl get pods -n operator
-sleep 10
-kubectl rollout status sts -n operator ksql
-
-# C3
-helm upgrade --install \
-controlcenter \
-./confluent-operator -f \
-${MYDIR}/gcp.yaml \
---namespace operator \
---set controlcenter.enabled=true
-
-echo "After Control Center Installation: Check all pods..."
-kubectl get pods -n operator
-sleep 10
-kubectl rollout status sts -n operator controlcenter
+echo "Wait for 5 minutes for all pods to get ready"
+sleep 5 minutes
 
 echo " Loadbalancers are created please wait a couple of minutes..."
 sleep 60
@@ -114,7 +88,7 @@ echo "EXTERNAL-IP  b2.mydevplatform.gcp.cloud kafka-2-lb kafka-2 b2"
 echo "EXTERNAL-IP  kafka.mydevplatform.gcp.cloud kafka-bootstrap-lb kafka"
 kubectl get services -n operator | grep LoadBalancer
 sleep 10
-     
+
 echo "After Load balancer Deployments: Check all Confluent Services..."
 kubectl get services -n operator
 kubectl get pods -n operator
