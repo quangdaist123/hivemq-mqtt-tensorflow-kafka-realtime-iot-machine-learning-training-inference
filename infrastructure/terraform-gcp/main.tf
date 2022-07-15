@@ -11,7 +11,7 @@ resource "google_container_cluster" "cluster" {
   }
 
   name = var.name
-  location = var.region
+  location = var.zone
 
   remove_default_node_pool = true
   initial_node_count = 1
@@ -41,7 +41,7 @@ resource "google_container_cluster" "cluster" {
 
 resource "google_container_node_pool" "primary_nodes" {
   name = "car-demo-node-pool-${var.name}"
-  location = var.region
+  location = var.zone
 
   cluster = google_container_cluster.cluster.name
   node_count = var.node_count
@@ -77,14 +77,14 @@ resource "null_resource" "setup-cluster" {
   ]
   triggers = {
     id = google_container_cluster.cluster.id
-    reg = var.region
+    zone = var.zone
     prj = var.project
     // Re-run script on deployment script changes
     script = sha1(file("00_setup_GKE.sh"))
   }
 
   provisioner "local-exec" {
-    command = "./00_setup_GKE.sh ${google_container_cluster.cluster.name} ${var.region} ${var.project}"
+    command = "./00_setup_GKE.sh ${google_container_cluster.cluster.name} ${var.zone} ${var.project}"
   }
 }
 
@@ -92,6 +92,7 @@ resource "null_resource" "setup-messaging" {
   triggers = {
     project  = var.project
     region     = var.region
+    zone     = var.zone
     name     = var.name
   }
 
@@ -112,7 +113,7 @@ resource "null_resource" "setup-messaging" {
   }
 
   provisioner "local-exec" {
-    command = "./destroy.sh ${self.triggers.project} ${self.triggers.region} ${self.triggers.name}"
+    command = "./destroy.sh ${self.triggers.project} ${self.triggers.zone} ${self.triggers.name}"
     when = "destroy"
   }
 }
