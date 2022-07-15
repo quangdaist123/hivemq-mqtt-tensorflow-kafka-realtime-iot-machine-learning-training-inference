@@ -12,7 +12,10 @@ helm repo update
 kubectl create namespace monitoring || true
 
 helm delete prometheus -n monitoring 2>/dev/null || true
-helm install --replace --atomic prometheus --version 8.5.14 stable/prometheus-operator -n monitoring --wait
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install --replace --atomic kube-prometheus-stack prometheus-community/kube-prometheus-stack --namespace monitoring || true
+
 
 echo "Deploying K8s dashboard..."
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-rc2/aio/deploy/recommended.yaml
