@@ -60,15 +60,15 @@ resource "google_container_node_pool" "primary_nodes" {
       "https://www.googleapis.com/auth/monitoring",
     ]
   }
-
-  autoscaling {
-    max_node_count = var.node_count
-    min_node_count = 1
-  }
-
-  management {
-    auto_upgrade = false
-  }
+#
+#  autoscaling {
+#    max_node_count = var.node_count
+#    min_node_count = 1
+#  }
+#
+#  management {
+#    auto_upgrade = false
+#  }
 }
 
 resource "null_resource" "setup-cluster" {
