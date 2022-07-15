@@ -29,6 +29,7 @@ variable name {
 variable project {
   type = string
   description = "todo-add-your-gcp-project-name"
+  default = "bigdata-demo-1954"
 }
 
 variable node_version {
