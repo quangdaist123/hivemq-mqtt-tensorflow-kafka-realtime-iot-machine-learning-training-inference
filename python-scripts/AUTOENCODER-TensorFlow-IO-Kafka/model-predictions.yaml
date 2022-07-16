@@ -16,7 +16,7 @@ spec:
         failure-domain.beta.kubernetes.io/zone: europe-west1-b
       containers:
         - name: model
-          image: sbaier1/car-sensor-model:autoencoder-1.1
+          image: quangdaist123/car-sensor-model
           imagePullPolicy: Always
           command: ["python3"]
           args:
