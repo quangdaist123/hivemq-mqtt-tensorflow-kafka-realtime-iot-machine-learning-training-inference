@@ -20,8 +20,8 @@ spec:
           imagePullPolicy: Always
           command: ["python3"]
           args:
-            - cardata-v3.py
-            - kafka.operator.svc.cluster.local:9071
+            - cardata-v3-predict.py
+            - kafka.confluent.svc.cluster.local:9071
             - SENSOR_DATA_S_AVRO
             - "0"
             - model-predictions
