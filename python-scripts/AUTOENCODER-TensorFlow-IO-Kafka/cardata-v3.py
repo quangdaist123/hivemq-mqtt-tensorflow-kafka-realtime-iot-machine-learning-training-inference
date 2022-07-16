@@ -252,18 +252,22 @@ if mode == "train":
     # Let's keep a copy for later usage, and use dataset_training instead for training only
 
     # only take data from failure_occurred == false for normal case for training
-    dataset_training = dataset.filter(lambda x, y: y == "false")
+    dataset = dataset.filter(lambda x, y: y == "false")
 
     # autoencoder is x => x so no y
-    dataset_training = dataset_training.map(lambda x, y: x)
+    dataset = dataset.map(lambda x, y: x)
+
+
+    def _fixup_shape(x):
+        x.set_shape([18])
+        return x
+
+
+    dataset = dataset.map(_fixup_shape)
 
     # Autoencoder => Input == Output
-    dataset_training = tf.data.Dataset.zip((dataset_training, dataset_training)).batch(batch_size).take(100)
-
-    history = autoencoder.fit(dataset_training,  # Autoencoder => Input == Output dimensions!
-                              epochs=nb_epoch,
-                              verbose=2).history
-
+    dataset_training = tf.data.Dataset.zip((dataset, dataset)).batch(batch_size)
+    predictions = autoencoder.fit(dataset_training, epochs=nb_epoch, verbose=2)
     print("Training complete")
 
     # Save the model
