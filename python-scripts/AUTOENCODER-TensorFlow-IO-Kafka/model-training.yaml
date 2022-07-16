@@ -10,14 +10,14 @@ spec:
       imagePullPolicy: Always
       command: ["python3"]
       args:
-       - cardata-v3-predict.py
+       - cardata-v3.py
        - kafka.confluent.svc.cluster.local:9071
        - SENSOR_DATA_S_AVRO
        - "0"
        - model-predictions
        - train
        - model1.h5
-       - kai-waehner-project_car-demo-cluster
+       - bigdata-demo-1954_car-demo-cluster
       volumeMounts:
         - name: storage-secret
           mountPath: /credentials
