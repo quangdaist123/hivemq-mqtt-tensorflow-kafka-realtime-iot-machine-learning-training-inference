@@ -5,13 +5,13 @@ import tensorflow_datasets as tfds
 from google.cloud import storage
 
 kafka_config = [
-    "broker.version.fallback=0.10.0.0",
-    "security.protocol=sasl_plaintext",
-    "sasl.username=test",
-    "sasl.password=test123",
-    "sasl.mechanisms=PLAIN"
+    # "broker.version.fallback=0.10.0.0",
+    # "security.protocol=sasl_plaintext",
+    # "sasl.username=test",
+    # "sasl.password=test123",
+    # "sasl.mechanisms=PLAIN"
     # Tried to force kafka library to use the correct address
-    # "bootstrap.servers=kafka.operator.svc.cluster.local:9071"
+    "bootstrap.servers=kafka.confluent.svc.cluster.local:9071"
 ]
 
 with open('cardata-v1.avsc') as f:
