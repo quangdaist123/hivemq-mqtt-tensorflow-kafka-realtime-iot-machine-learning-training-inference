@@ -27,7 +27,7 @@ spec:
             - model-predictions
             - predict
             - model1.h5
-            - kai-waehner-project_car-demo-cluster
+            - bigdata-demo-1954_car-demo-cluster
           volumeMounts:
           - name: storage-secret
             mountPath: /credentials
