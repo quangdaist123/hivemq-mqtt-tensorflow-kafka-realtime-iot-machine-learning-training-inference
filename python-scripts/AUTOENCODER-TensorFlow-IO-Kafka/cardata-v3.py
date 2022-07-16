@@ -1,8 +1,12 @@
 import numpy as np
 import tensorflow as tf
+import tensorflow_io as tfio
 import tensorflow_io.kafka as kafka_io
 import tensorflow_datasets as tfds
 from google.cloud import storage
+import io
+from confluent_kafka import Consumer, KafkaError
+from avro.io import DatumReader, BinaryDecoder
 
 kafka_config = [
     # "broker.version.fallback=0.10.0.0",
@@ -37,17 +41,24 @@ model_file = sys.argv[6]
 bucket_suffix = sys.argv[7]
 
 # Configure google storage bucket access
-client = storage.Client.from_service_account_json('/credentials/credentials.json')
+client = storage.Client.from_service_account_json('./credentials/credentials.json')
 bucket = client.get_bucket("tf-models_" + bucket_suffix)
 
 
 def kafka_dataset(servers, topic, offset, schema, eof=True):
-    print("Create: ", "{}:0:{}".format(topic, offset))
-    dataset = kafka_io.KafkaDataset(["{}:0:{}".format(topic, offset, offset)], servers=servers,
-                                    group="cardata-autoencoder", eof=eof, config_global=kafka_config)
+    # dataset = kafka_io.KafkaDataset(["{}:0:{}".format(topic, offset, offset)], servers=servers,
+    #                                 group="cardata-autoencoder", eof=eof, config_global=kafka_config)
 
-    # remove kafka framing
-    dataset = dataset.map(lambda e: tf.strings.substr(e, 5, -1))
+    dataset = tfio.IODataset.from_kafka(topic, partition=0, offset=0, servers=servers, configuration=kafka_config)
+    # dataset = tfio.experimental.streaming.KafkaGroupIODataset(
+    #     topics=topic,
+    #     group_id="cardata-autoencoder",
+    #     servers=servers,
+    #     stream_timeout=10000,
+    #     configuration=kafka_config,
+    # )
+
+    hi = list(dataset.as_numpy_iterator())
 
     # deserialize avro
     dataset = dataset.map(
