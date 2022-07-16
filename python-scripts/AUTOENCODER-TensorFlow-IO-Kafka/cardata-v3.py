@@ -152,23 +152,19 @@ def normalize_fn(
     def scale_fn(value, value_min, value_max):
         return (value - value_min) / (value_max - value_min) * 2.0 - 1.0
 
-    # coolant_temp ?????????? TODO
-    coolant_temp = 0.0
+    coolant_temp = scale_fn(coolant_temp, 23.0, 102.0)
 
     # intake_air_temp (15, 40) => (-1.0, 1.0)
     intake_air_temp = scale_fn(intake_air_temp, 15.0, 40.0)
 
-    # intake_air_flow_speed ?????????? TODO
-    intake_air_flow_speed = 0.0
+    intake_air_flow_speed = scale_fn(intake_air_flow_speed, 0.0, 200.0)
 
     # battery_percentage ?????????? (0, 100) => (-1.0, 1.0)
     battery_percentage = scale_fn(battery_percentage, 0.0, 100.0)
 
-    # battery_voltage ?????????? TODO
-    battery_voltage = 0.0
+    battery_voltage = scale_fn(battery_voltage, 180.0, 260.0)
 
-    # current_draw ?????????? TODO
-    current_draw = 0.0
+    current_draw = scale_fn(current_draw, 80.0, 84.0)
 
     # speed ?????????? (0, 50) => (-1.0, 1.0)
     speed = scale_fn(speed, 0.0, 50.0)
