@@ -10,7 +10,7 @@ if ! hash kubectl 2>/dev/null; then
 fi
 
 # To make sure the Prometheus operator can discover the HiveMQ service monitor
-kubectl patch -n monitoring prometheus prometheus-prometheus-oper-prometheus --type='json' -p='[{"op": "replace", "path": "/spec/serviceMonitorSelector", "value":{}}]'
+#kubectl patch -n monitoring prometheus prometheus-prometheus-oper-prometheus --type='json' -p='[{"op": "replace", "path": "/spec/serviceMonitorSelector", "value":{}}]'
 
 kubectl create namespace hivemq || true
 kubectl apply -f operator-rbac.yaml
@@ -18,23 +18,31 @@ kubectl apply -f operator-rbac.yaml
 kubectl create -n monitoring configmap hivemq-dashboard --from-file=hivemq.json || true
 kubectl label -n monitoring configmap/hivemq-dashboard grafana_dashboard=1 || true
 
-echo "Deploying HiveMQ operator..."
+#echo "Deploying HiveMQ operator..."
+# Warning: This is a really early development version of the operator. DO NOT USE IN PRODUCTION
+#kubectl run operator --namespace hivemq --serviceaccount=hivemq-operator --image=sbaier1/hivemq-operator:0.0.5 || true
+
+# kubectl rollout -n hivemq status deployment operator
+
+# Arbitrary sleep to wait until the operator creates the CRD
+# sleep 5
 
 kubectl apply -f kafka-config.yaml
 
 
-# Install operator????
-helm repo add hivemq https://hivemq.github.io/helm-charts
+## Install operator????
+helm repo add hivemq https://hivemq.github.io/helm-charts -n hivemq
 helm repo update
-helm upgrade --install hivemq hivemq/hivemq-operator
- sleep 5
-
-# TODO: wait until operator has been deployed
+helm upgrade --install hivemq hivemq/hivemq-operator -n hivemq
+#
 # Delete the default hivemq cluster
-kubectl delete deploy hivemq
 
-#kubectl apply -n hivemq -f hivemq-crd-evaluation.yaml
-kubectl apply -f hivemq-crd-evaluation.yaml
+echo "Wait for 5 minutes so that the operator can get deployed"
+sleep 5m
+kubectl delete deploy hivemq -n hivemq
+
+kubectl apply -n hivemq -f hivemq-crd-evaluation.yaml
+#kubectl apply -f hivemq-crd-evaluation.yaml
 
 
 until kubectl get -n hivemq deployments | grep hivemq-cluster1; do
