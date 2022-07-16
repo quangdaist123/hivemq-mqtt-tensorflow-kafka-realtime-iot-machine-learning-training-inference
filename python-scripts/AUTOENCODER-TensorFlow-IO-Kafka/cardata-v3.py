@@ -61,28 +61,64 @@ def kafka_dataset(servers, topic, offset, schema, eof=True):
     hi = list(dataset.as_numpy_iterator())
 
     # deserialize avro
-    dataset = dataset.map(
-        lambda e: kafka_io.decode_avro(
-            e, schema=schema, dtype=[
-                tf.float64,
-                tf.float64,
-                tf.float64,
-                tf.float64,
-                tf.float64,
-                tf.float64,
-                tf.float64,
-                tf.float64,
-                tf.float64,
-                tf.int32,
-                tf.int32,
-                tf.int32,
-                tf.int32,
-                tf.float64,
-                tf.float64,
-                tf.float64,
-                tf.float64,
-                tf.int32,
-                tf.string]))
+    import avro.schema
+    schema = avro.schema.parse(open("cardata-v1.avsc").read())
+    reader = DatumReader(schema)
+
+    def decode_avro(message):
+        # you should decode bytes type to string type
+        message = message.numpy()
+        # remove kafka framing
+        message_bytes = io.BytesIO(message[5:])
+        decoder = BinaryDecoder(message_bytes)
+        event_dict = reader.read(decoder)
+        # output = event_dict.values()
+        output = [event_dict[k] for k in event_dict.keys()]
+        # output = normalize_fn(*event_dict.values())
+        return output
+
+    dataset = dataset.map(lambda x: tf.py_function(decode_avro, [x.message], [
+        tf.float64,
+        tf.float64,
+        tf.float64,
+        tf.float64,
+        tf.float64,
+        tf.float64,
+        tf.float64,
+        tf.float64,
+        tf.float64,
+        tf.int32,
+        tf.int32,
+        tf.int32,
+        tf.int32,
+        tf.float64,
+        tf.float64,
+        tf.float64,
+        tf.float64,
+        tf.int32,
+        tf.string]))
+    # dataset = dataset.map(
+    #     lambda e: kafka_io.decode_avro(
+    #         e, schema=schema, dtype=[
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.int32,
+    #             tf.int32,
+    #             tf.int32,
+    #             tf.int32,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.float64,
+    #             tf.int32,
+    #             tf.string]))
     return dataset
 
 
