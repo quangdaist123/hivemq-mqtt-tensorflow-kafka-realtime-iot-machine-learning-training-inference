@@ -290,10 +290,10 @@ class OutputCallback(tf.keras.callbacks.Callback):
     def on_predict_batch_end(self, batch, logs=None):
         index = batch * self._batch_size
         for outputs in logs['outputs']:
-            for output in outputs:
-                message = np.array2string(output)
-                self._sequence.setitem(index, message)
-                index += 1
+            print(outputs)
+            message = np.array2string(outputs)
+            self._sequence.setitem(index, message)
+            index += 1
 
     def flush(self):
         self._sequence.flush()
