@@ -1,9 +1,11 @@
 import numpy as np
+import avro.schema
 import tensorflow as tf
 import tensorflow_io as tfio
 import tensorflow_io.kafka as kafka_io
 import tensorflow_datasets as tfds
 from google.cloud import storage
+from kafka import KafkaProducer
 import io
 from confluent_kafka import Consumer, KafkaError
 from avro.io import DatumReader, BinaryDecoder
@@ -17,9 +19,6 @@ kafka_config = [
     # Tried to force kafka library to use the correct address
     "bootstrap.servers=kafka.confluent.svc.cluster.local:9071"
 ]
-
-with open('cardata-v1.avsc') as f:
-    schema = f.read()
 
 import sys
 
@@ -248,7 +247,6 @@ if mode == "train":
                         optimizer='adam')
 
     autoencoder.summary()
-
     # Let's keep a copy for later usage, and use dataset_training instead for training only
 
     # only take data from failure_occurred == false for normal case for training
@@ -283,17 +281,18 @@ class OutputCallback(tf.keras.callbacks.Callback):
     """KafkaOutputCallback"""
 
     def __init__(self, batch_size, topic, servers):
-        self._sequence = kafka_io.KafkaOutputSequence(
-            topic=topic, servers=servers, configuration=kafka_config)
+        self.topic = topic
+        # self._sequence = kafka_io.KafkaOutputSequence(
+        #     topic=topic, servers=servers, configuration=kafka_config)
+        self._sequence = KafkaProducer(bootstrap_servers=servers)
         self._batch_size = batch_size
 
     def on_predict_batch_end(self, batch, logs=None):
         index = batch * self._batch_size
         for outputs in logs['outputs']:
-            print(outputs)
             message = np.array2string(outputs)
-            self._sequence.setitem(index, message)
-            index += 1
+            self._sequence.send(self.topic, value=message.encode('utf-8'))
+            # self._sequence.setitem(index, message)
 
     def flush(self):
         self._sequence.flush()
@@ -306,39 +305,13 @@ if mode == "predict":
     print("Loading model")
     # Recreate the exact same model purely from the file
     new_autoencoder = tf.keras.models.load_model("/" + model_file)
-
-    # Create predict dataset (with 200 data points)
-    # Note: we don't need to  use `filter(lambda x, y: y == "false")` anymore
-    # as we will do predict for everything
-
-    # drop y field (could be `true`, `false`, or no value ``)
-    dataset_predict = dataset.map(lambda x, y: x)
-    data_offset = 100
-
-    # Use same batch_size, but result_topic
     output = OutputCallback(batch_size, result_topic, servers)
 
-    dataset_predict = dataset_predict.batch(batch_size).skip(data_offset).take(100)
-
-    predict_out = new_autoencoder.predict(dataset_predict, callbacks=[output])
-
-    print("predict %s, dataset: %s", predict_out, dataset_predict)
+    dataset = dataset.filter(lambda x, y: y == "false")
+    # autoencoder is x => x so no y
+    dataset = dataset.map(lambda x, y: x)
+    dataset = dataset.map(_fixup_shape)
+    dataset = dataset.batch(batch_size)
+    predict_out = new_autoencoder.predict(dataset, callbacks=[output])
     output.flush()
     print("Predict complete")
-    # while True:
-    #    dataset_predict = dataset_predict.batch(batch_size).skip(data_offset).take(100)
-    #    predict = new_autoencoder.predict(dataset_predict, callbacks=[output])
-    #
-    #    output.flush()
-    #    data_offset += 100
-    #    print("Predict complete")
-
-    # Note: usage example for training+inference
-    # docker build -t tensorflow-io .
-    # docker run -i -t --net=host tensorflow-io python3 cardata-v1.py localhost:9092 cardata-v1 0 cardata-v1-result
-    #
-    # The inference result is available:
-    # from kafka import KafkaConsumer
-    # consumer = KafkaConsumer('cardata-v1-result', auto_offset_reset='earliest', enable_auto_commit=False, bootstrap_servers=['localhost:9092'])
-    # for message in consumer:
-    #   print("MESSAGE: ", message)
