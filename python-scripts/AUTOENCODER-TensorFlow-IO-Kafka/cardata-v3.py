@@ -17,7 +17,8 @@ kafka_config = [
     # "sasl.password=test123",
     # "sasl.mechanisms=PLAIN"
     # Tried to force kafka library to use the correct address
-    "bootstrap.servers=kafka.confluent.svc.cluster.local:9071"
+    "bootstrap.servers=kafka.confluent.svc.cluster.local:9071",
+    # "enable.partition.eof=false"
 ]
 
 import sys
@@ -44,80 +45,79 @@ client = storage.Client.from_service_account_json('./credentials/credentials.jso
 bucket = client.get_bucket("tf-models_" + bucket_suffix)
 
 
-def kafka_dataset(servers, topic, offset, schema, eof=True):
-    # dataset = kafka_io.KafkaDataset(["{}:0:{}".format(topic, offset, offset)], servers=servers,
-    #                                 group="cardata-autoencoder", eof=eof, config_global=kafka_config)
-
-    dataset = tfio.IODataset.from_kafka(topic, partition=0, offset=0, servers=servers, configuration=kafka_config)
-    # dataset = tfio.experimental.streaming.KafkaGroupIODataset(
-    #     topics=topic,
-    #     group_id="cardata-autoencoder",
-    #     servers=servers,
-    #     stream_timeout=10000,
-    #     configuration=kafka_config,
-    # )
-
-    hi = list(dataset.as_numpy_iterator())
-
-    # deserialize avro
-    import avro.schema
+def decode_avro(message):
     schema = avro.schema.parse(open("cardata-v1.avsc").read())
     reader = DatumReader(schema)
+    # you should decode bytes type to string type
+    message = message.numpy()
+    # remove kafka framing
+    message_bytes = io.BytesIO(message[5:])
+    decoder = BinaryDecoder(message_bytes)
+    event_dict = reader.read(decoder)
+    # output = event_dict.values()
+    output = [event_dict[k] for k in event_dict.keys()]
+    return output
 
-    def decode_avro(message):
-        # you should decode bytes type to string type
-        message = message.numpy()
-        # remove kafka framing
-        message_bytes = io.BytesIO(message[5:])
-        decoder = BinaryDecoder(message_bytes)
-        event_dict = reader.read(decoder)
-        # output = event_dict.values()
-        output = [event_dict[k] for k in event_dict.keys()]
-        # output = normalize_fn(*event_dict.values())
-        return output
 
-    dataset = dataset.map(lambda x: tf.py_function(decode_avro, [x.message], [
-        tf.float64,
-        tf.float64,
-        tf.float64,
-        tf.float64,
-        tf.float64,
-        tf.float64,
-        tf.float64,
-        tf.float64,
-        tf.float64,
-        tf.int32,
-        tf.int32,
-        tf.int32,
-        tf.int32,
-        tf.float64,
-        tf.float64,
-        tf.float64,
-        tf.float64,
-        tf.int32,
-        tf.string]))
-    # dataset = dataset.map(
-    #     lambda e: kafka_io.decode_avro(
-    #         e, schema=schema, dtype=[
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.int32,
-    #             tf.int32,
-    #             tf.int32,
-    #             tf.int32,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.float64,
-    #             tf.int32,
-    #             tf.string]))
+def kafka_dataset(servers, topic, offset, eof=True, mode='train'):
+    if mode == 'train':
+        dataset = tfio.IODataset.from_kafka(topic, partition=0, offset=0, servers=servers, configuration=kafka_config)
+        dataset = dataset.map(lambda x: tf.py_function(decode_avro, [x.message], [
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.int32,
+            tf.int32,
+            tf.int32,
+            tf.int32,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.int32,
+            tf.string]))
+
+    elif mode == 'predict':
+        dataset = tfio.experimental.streaming.KafkaGroupIODataset(
+            topics=[topic],
+            group_id="cg-report-8",
+            servers=servers,
+            stream_timeout=30000,  # in milliseconds, to block indefinitely, set it to -1.
+            configuration=[
+                "session.timeout.ms=30000",
+                "max.poll.interval.ms=30000",
+                "auto.offset.reset=earliest",
+                # "auto.offset.reset=latest",
+                "enable.partition.eof=false"
+            ],
+        )
+        dataset = dataset.map(lambda message, key: tf.py_function(decode_avro, [message], [
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.int32,
+            tf.int32,
+            tf.int32,
+            tf.int32,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.float64,
+            tf.int32,
+            tf.string]))
+
     return dataset
 
 
@@ -210,13 +210,18 @@ def normalize_fn(
         control_unit_firmware]), failure_occurred
 
 
+def _fixup_shape(x):
+    x.set_shape([18])
+    return x
+
+
 # Note: same autoencoder, except:
 # Autoencoder: 30 => 14 => 7 => 7 => 14 => 30 dimensions
 # replaced by
 # Autoencoder: 18 => 14 => 7 => 7 => 14 => 18 dimensions
 
-nb_epoch = 20
-batch_size = 100
+nb_epoch = 100
+batch_size = 1
 
 # Autoencoder: 18 => 14 => 7 => 7 => 14 => 18 dimensions
 input_dim = 18  # num of columns, 18
@@ -236,7 +241,7 @@ decoder = tf.keras.layers.Dense(input_dim, activation='relu')(decoder)
 autoencoder = tf.keras.models.Model(inputs=input_layer, outputs=decoder)
 
 # create data for training
-dataset = kafka_dataset(servers, topic, offset, schema)
+dataset = kafka_dataset(servers, topic, offset, mode=mode)
 
 # normalize data
 dataset = dataset.map(normalize_fn)
